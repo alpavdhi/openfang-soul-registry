@@ -1,0 +1,78 @@
+# Workflow для автоматического деплоя Soul Registry Pipeline
+# Триггерится при push в ветку main/master.
+
+name: Soul Registry Deployment CI/CD
+
+on:
+  push:
+    branches:
+      - main # Или master, в зависимости от ветки
+  workflow_dispatch: # Позволяет запускать вручную
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    environment: 
+      name: Development-Staging # Используйте Environment Protection Rules!
+      url: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true # Если есть подмодули
+          fetch-depth: 0
+
+      # Настройка окружения Python
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      # Установка зависимостей (если они есть в requirements.txt)
+      - name: Install Dependencies
+        run: |
+          # Здесь нужно установить все зависимости, необходимые для toml_apply_v3.py
+          pip install -r requirements.txt 
+
+      # 🧪 Шаг 1: Прогон в режиме Dry-Run (Всегда безопасный)
+      - name: Run Dry-Run Test
+        run: |
+          echo "--- Starting Dry Run Test for all agents ---"
+          # Используем наш универсальный интерфейс
+          ./cli.sh --dry-run
+        # Если этот шаг падает, CI/CD останавливается, но без изменений в системе.
+
+  deploy-live:
+    needs: build-and-test # Запуск только после успешного Dry-Run
+    runs-on: ubuntu-latest
+    environment: 
+      name: Production # Используйте Environment Protection Rules!
+    
+    # !!! ВАЖНО: Этот job требует ручного подтверждения
+    # Вы должны настроить Environment Protection Rules в GitHub для ветки 'Production'
+    # чтобы он не запустился автоматически.
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+          
+      - name: Install Dependencies
+        run: |
+          pip install -r requirements.txt 
+
+      # 🚀 Шаг 2: Live Деплой (Крайне опасный, требует ручного подтверждения)
+      - name: Live Deployment Execution
+        run: |
+          echo "==================================================="
+          echo "🚨 ВНИМАНИЕ: Начинается ФАКТИЧЕСКИЙ DEPLOYMENT АГЕНТОВ!"
+          echo "==================================================="
+          # Этот шаг только должен выполняться после ручного подтверждения!
+          ./cli.sh --live
+        env:
+          # Здесь можно передавать секретные ключи API для реального деплоя
+          OPENFANG_API_TOKEN: ${{ secrets.OPENFANG_API_TOKEN }}
+          
+# Процесс завершен.
