@@ -36,7 +36,9 @@ jobs:
       # 🧪 Шаг 1: Прогон в режиме Dry-Run (Всегда безопасный)
       - name: Run Dry-Run Test
         run: |
-          echo "--- Starting Dry Run Test for all agents ---"
+          echo "--- STARTING DEBUG MODE ---"
+          # Включаем режим отладки, который выводит каждую команду и аргумент
+          set -x
           # Используем наш универсальный интерфейс
           ./cli.sh --dry-run
         # Если этот шаг падает, CI/CD останавливается, но без изменений в системе.
